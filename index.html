@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MedClarity – Patient Literacy Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght=400;700;800&family=DM+Sans:wght=400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    body{font-family:'DM Sans',sans-serif}h1,h2,h3,.brand{font-family:'Sora',sans-serif}
+    .card{transition:transform .25s,box-shadow .25s}.card:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(37,99,235,.18)}
+    .step-line{position:relative}.step-line:not(:last-child)::after{content:'';position:absolute;top:24px;left:calc(50% + 24px);width:calc(100% - 48px);height:2px;background:linear-gradient(90deg,#3b82f6,#e2e8f0);z-index:0}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+  <nav class="fixed top-0 inset-x-0 z-50 bg-blue-700 flex items-center justify-between px-8 h-14 shadow-md">
+    <span class="brand text-white text-lg font-bold"><i class="fa-solid fa-stethoscope text-blue-200 mr-2"></i>Med<span class="text-blue-200">Clarity</span></span>
+    <div class="hidden md:flex gap-7 text-sm text-blue-100">
+      <a href="#features" class="hover:text-white transition">Features</a><a href="#how" class="hover:text-white transition">How It Works</a>
+      <a href="#reviews" class="hover:text-white transition">Reviews</a><a href="#contact" class="hover:text-white transition">Contact</a>
+      <a href="#contact" class="hover:text-white transition">About Us</a>
+    </div>
+    <a href="#features" class="brand text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 px-5 py-2 rounded-full transition shadow">Get Started</a>
+  </nav>
+
+  <section class="relative min-h-screen flex items-center pt-14 bg-cover bg-center" style="background-image:url('img2.jpg')">
+    <div class="w-full pl-2 py-28 flex justify-start">
+      <div class="max-w-md bg-white rounded-3xl p-10 shadow-2xl border border-slate-100 ml-16">
+        <span class="inline-block bg-blue-100 text-blue-700 text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full mb-5 brand -ml-4">AI-Powered Patient Literacy</span>
+        <h1 class="text-4xl font-extrabold text-slate-900 leading-tight mb-4">Understand Your Health.<br><span class="text-blue-700">Navigate with Confidence.</span></h1>
+        <p class="text-slate-500 text-sm mb-7">MedClarity turns complex medical reports into plain language and guides you through every hospital step — no degree needed.</p>
+        <div class="flex gap-3 mb-8">
+          <a href="#features" class="brand bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-7 py-3 rounded-full shadow-lg transition">Get Started</a>
+          <a href="#how" class="brand bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-7 py-3 rounded-full transition">Learn More</a>
+        </div>
+        <div class="flex gap-8 pt-6 border-t border-slate-100 text-center">
+          <div><div class="brand text-2xl font-bold text-blue-700">10K+</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Terms Decoded</div></div>
+          <div><div class="brand text-2xl font-bold text-blue-700">95%</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Clarity Rate</div></div>
+          <div><div class="brand text-2xl font-bold text-blue-700">24/7</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Access</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="py-20 bg-slate-50">
+    <div class="max-w-6xl mx-auto px-6 text-center mb-12">
+      <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Platform Features</span>
+      <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Everything You Need to Understand Your Health</h2>
+    </div>
+    <div class="max-w-6xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div><div class="bg-orange-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="30" y="20" width="100" height="80" rx="8" fill="#fed7aa"/><rect x="44" y="34" width="72" height="8" rx="3" fill="#fb923c"/><rect x="44" y="48" width="52" height="6" rx="3" fill="#fdba74"/><rect x="44" y="60" width="60" height="6" rx="3" fill="#fdba74"/><rect x="44" y="72" width="40" height="6" rx="3" fill="#fdba74"/><circle cx="118" cy="38" r="14" fill="#3b82f6"/><path d="M112 38l4 4 8-8" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+        <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Report Decoder</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Converts lab reports and prescriptions into plain, everyday language instantly.</p></div></div>
+        <div class="px-6 pb-6"><a href="#" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Decode Now</a></div>
+      </article>
+      <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div><div class="bg-blue-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="15" width="55" height="90" rx="6" fill="#bfdbfe"/><rect x="28" y="28" width="38" height="5" rx="2" fill="#3b82f6"/><rect x="28" y="40" width="30" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="51" width="34" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="62" width="26" height="4" rx="2" fill="#93c5fd"/><rect x="88" y="15" width="52" height="90" rx="6" fill="#1d4ed8"/><text x="114" y="52" font-size="9" fill="white" text-anchor="middle" font-family="sans-serif">STEP</text><text x="114" y="64" font-size="14" fill="#93c5fd" text-anchor="middle" font-family="sans-serif" font-weight="bold">1→4</text></svg></div>
+        <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Journey Navigator</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Step-by-step hospital guidance from registration to discharge follow-up.</p></div></div>
+        <div class="px-6 pb-6"><a href="#" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Navigate Now</a></div>
+      </article>
+      <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div><div class="bg-green-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="25" y="20" width="110" height="80" rx="8" fill="#bbf7d0"/><rect x="38" y="34" width="84" height="10" rx="4" fill="#22c55e"/><rect x="38" y="52" width="64" height="7" rx="3" fill="#86efac"/><rect x="38" y="65" width="74" height="7" rx="3" fill="#86efac"/><rect x="38" y="78" width="50" height="7" rx="3" fill="#86efac"/><circle cx="128" cy="34" r="10" fill="#16a34a"/><text x="128" y="38" font-size="11" fill="white" text-anchor="middle" font-family="sans-serif">?</text></svg></div>
+        <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Health Literacy Hub</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Plain-language guides on diseases, tests, and procedures for every patient.</p></div></div>
+        <div class="px-6 pb-6"><a href="#" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Explore Hub</a></div>
+      </article>
+      <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div><div class="bg-yellow-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="20" width="120" height="80" rx="8" fill="#fef08a"/><rect x="32" y="32" width="95" height="12" rx="4" fill="#eab308"/><rect x="32" y="52" width="75" height="7" rx="3" fill="#fde047"/><rect x="32" y="65" width="85" height="7" rx="3" fill="#fde047"/><rect x="32" y="78" width="60" height="7" rx="3" fill="#fde047"/><circle cx="120" cy="88" r="12" fill="#3b82f6"/><text x="120" y="93" font-size="14" fill="white" text-anchor="middle" font-family="sans-serif">✓</text></svg></div>
+        <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Patient FAQ Center</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Answers your most common healthcare questions in reassuring everyday language.</p></div></div>
+        <div class="px-6 pb-6"><a href="#" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">See FAQs</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="how" class="py-20 bg-white border-y border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 text-center mb-14">
+      <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Process</span>
+      <h2 class="text-4xl font-extrabold text-slate-900 mt-2">How MedClarity Works</h2>
+    </div>
+    <div class="max-w-5xl mx-auto px-6 grid grid-cols-4 gap-4">
+      <div class="step-line text-center">
+        <div class="w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">01</div>
+        <h3 class="brand font-bold text-slate-900 text-base mb-2">Upload Report</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Photo or PDF — lab report, prescription, or discharge summary.</p>
+      </div>
+      <div class="step-line text-center">
+        <div class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">02</div>
+        <h3 class="brand font-bold text-slate-900 text-base mb-2">AI Decodes It</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Every term, value and abbreviation translated into simple words.</p>
+      </div>
+      <div class="step-line text-center">
+        <div class="w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">03</div>
+        <h3 class="brand font-bold text-slate-900 text-base mb-2">Explore Guidance</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Personalised next steps and questions to ask your doctor.</p>
+      </div>
+      <div class="step-line text-center">
+        <div class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">04</div>
+        <h3 class="brand font-bold text-slate-900 text-base mb-2">Decide Confidently</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Walk into your appointment prepared, leave knowing what's next.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="reviews" class="py-20 bg-slate-50">
+    <div class="max-w-6xl mx-auto px-6 text-center mb-14">
+      <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Patient Stories</span>
+      <h2 class="text-4xl font-extrabold text-slate-900 mt-2">What Our Users Say</h2>
+    </div>
+    <div class="max-w-6xl mx-auto px-6 grid sm:grid-cols-3 gap-6">
+      <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
+        <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+        <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"MedClarity explained my blood test in 2 minutes. I finally understood my cholesterol and knew exactly what to change in my diet."</p>
+        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center text-white text-sm font-bold">RK</div><div><div class="brand text-base font-bold text-slate-900">Ravi Kumar</div><div class="text-sm text-slate-500">Bangalore · Patient</div></div></div>
+      </div>
+      <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
+        <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+        <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"The hospital navigator was a lifesaver when I travelled to a new city for surgery. Knew exactly where to go and what documents to carry."</p>
+        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold">PJ</div><div><div class="brand text-base font-bold text-slate-900">Priya Joshi</div><div class="text-sm text-slate-500">Pune · Caregiver</div></div></div>
+      </div>
+      <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
+        <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
+        <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"Medical jargon always scared me. MedClarity made my discharge summary feel like a friendly letter. My daughter set it up and I use it weekly."</p>
+        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white text-sm font-bold">SM</div><div><div class="brand text-base font-bold text-slate-900">Suresh Mehta</div><div class="text-sm text-slate-500">Chennai · Senior Patient</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="contact" class="bg-blue-700 py-10 text-center px-6">
+    <h2 class="brand text-2xl font-extrabold text-white mb-2">Ready to Take Control of Your Healthcare?</h2>
+    <p class="text-blue-100 text-sm mb-6 max-w-md mx-auto">Start understanding your reports and navigating healthcare confidently. No medical degree required.</p>
+    <a href="mailto:contact@medclarity.health" class="brand bg-white text-blue-700 hover:bg-blue-50 font-bold px-8 py-3 rounded-full transition shadow-lg text-sm">Contact Us</a>
+    <div class="mt-8 pt-6 border-t border-blue-600 text-blue-200 text-[11px]">© 2026 MedClarity &nbsp;·&nbsp; Susan Matilda &nbsp;·&nbsp; 1 MCA B &nbsp;·&nbsp; Reg. No: 2647254</div>
+  </footer>
+
+</body>
+</html>
