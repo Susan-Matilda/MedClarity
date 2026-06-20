@@ -1,137 +1,316 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>MedClarity – Patient Literacy Platform</title>
   <meta name="description" content="MedClarity turns complex medical reports into plain language. Upload reports, listen to explanations, find hospitals, set medication reminders, and more."/>
+
+  <!-- External Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <style>
-    html{scroll-behavior:smooth}
-    body{font-family:'DM Sans',sans-serif}h1,h2,h3,.brand{font-family:'Sora',sans-serif}
-    .card{transition:transform .25s,box-shadow .25s}.card:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(37,99,235,.18)}
-    .step-line{position:relative}.step-line:not(:last-child)::after{content:'';position:absolute;top:24px;left:calc(50% + 24px);width:calc(100% - 48px);height:2px;background:linear-gradient(90deg,#3b82f6,#e2e8f0);z-index:0}
-    /* ===== Drag & Drop Zone Styles ===== */
-    .drop-zone{border:2px dashed #93c5fd;border-radius:1rem;padding:2.5rem 1.5rem;text-align:center;transition:background .2s,border-color .2s,transform .2s;cursor:pointer}
-    .drop-zone:hover{background:#eff6ff;border-color:#3b82f6}
-    .drop-zone.drag-over{background:#dbeafe;border-color:#2563eb;transform:scale(1.02);box-shadow:0 0 20px rgba(37,99,235,.15)}
-    /* ===== Toast / Alert Styles ===== */
-    .toast{position:fixed;top:80px;right:20px;z-index:9999;padding:14px 24px;border-radius:12px;color:#fff;font-size:.875rem;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(-12px);transition:opacity .35s,transform .35s;pointer-events:none}
-    .toast.show{opacity:1;transform:translateY(0)}
-    .toast.success{background:linear-gradient(135deg,#16a34a,#22c55e)}
-    .toast.error{background:linear-gradient(135deg,#dc2626,#ef4444)}
-    .toast.info{background:linear-gradient(135deg,#2563eb,#3b82f6)}
-    /* ===== Canvas Responsive ===== */
-    canvas{max-width:100%;height:auto!important}
-    /* ===== Micro-animation for section fade-in ===== */
-    .api-section{transition:opacity .6s ease-out,transform .6s ease-out}
-  </style>
-</head>
-<body class="bg-slate-50 text-slate-700">
-  <div id="toast" class="toast" aria-live="polite"></div>
 
-  <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300" onclick="closeAuthModalOnOutsideClick(event)">
-    <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-slate-100 relative transform scale-95 transition-transform duration-300" id="authModalContent">
-      <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition text-lg">
+  <!-- MedClarity Styles -->
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       TOAST NOTIFICATION
+  ═══════════════════════════════════════════════ -->
+  <div id="toast" class="toast" aria-live="polite" role="status"></div>
+
+  <!-- ═══════════════════════════════════════════════
+       AUTH MODAL
+  ═══════════════════════════════════════════════ -->
+  <div id="authModal"
+       class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
+       onclick="closeAuthModalOnOutsideClick(event)"
+       role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div id="authModalContent" class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-slate-100 relative mx-4">
+
+      <button onclick="closeAuthModal()"
+              class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 transition text-xl"
+              aria-label="Close sign-in window">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
+      <h2 id="authModalTitle" class="sr-only">Sign In or Create Account</h2>
+
+      <!-- Tabs -->
       <div class="flex border-b border-slate-100 mb-6">
-        <button id="tabSignIn" onclick="toggleAuthTab('signin')" class="w-1/2 pb-3 brand font-bold text-sm text-blue-700 border-b-2 border-blue-700 transition">Sign In</button>
-        <button id="tabSignUp" onclick="toggleAuthTab('signup')" class="w-1/2 pb-3 brand font-bold text-sm text-slate-400 hover:text-slate-600 transition">Sign Up</button>
+        <button id="tabSignIn" onclick="toggleAuthTab('signin')"
+                class="w-1/2 pb-3 brand font-bold text-sm text-blue-700 border-b-2 border-blue-700 transition">
+          Sign In
+        </button>
+        <button id="tabSignUp" onclick="toggleAuthTab('signup')"
+                class="w-1/2 pb-3 brand font-bold text-sm text-slate-400 hover:text-slate-600 transition">
+          Create Account
+        </button>
       </div>
 
-      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+      <form id="authForm" novalidate onsubmit="handleAuthSubmit(event)">
+        <!-- Full Name (signup only) -->
         <div id="authNameField" class="mb-4 hidden">
-          <label for="authName" class="brand font-bold text-slate-900 text-xs block mb-2">Full Name</label>
-          <input type="text" id="authName" placeholder="Susan Matilda" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
+          <label for="authName" class="brand font-bold text-slate-900 text-sm block mb-2">Full Name</label>
+          <input type="text" id="authName" autocomplete="name"
+                 placeholder="e.g. Susan Matilda"
+                 class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"
+                 aria-describedby="authNameError"/>
+          <p id="authNameError" class="field-error" aria-live="polite"></p>
         </div>
 
+        <!-- Email -->
         <div class="mb-4">
-          <label for="authEmail" class="brand font-bold text-slate-900 text-xs block mb-2">Email Address</label>
-          <input type="email" id="authEmail" required placeholder="susan@example.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
+          <label for="authEmail" class="brand font-bold text-slate-900 text-sm block mb-2">Email Address</label>
+          <input type="email" id="authEmail" required autocomplete="email"
+                 placeholder="you@example.com"
+                 class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"
+                 aria-describedby="authEmailError"/>
+          <p id="authEmailError" class="field-error" aria-live="polite"></p>
         </div>
 
-        <div class="mb-6">
-          <label for="authPassword" class="brand font-bold text-slate-900 text-xs block mb-2">Password</label>
-          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
+        <!-- Password -->
+        <div class="mb-2">
+          <label for="authPassword" class="brand font-bold text-slate-900 text-sm block mb-2">Password</label>
+          <input type="password" id="authPassword" required autocomplete="current-password"
+                 placeholder="••••••••"
+                 class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"
+                 aria-describedby="authPasswordError"/>
+          <p id="authPasswordError" class="field-error" aria-live="polite"></p>
         </div>
 
-        <button type="submit" id="authSubmitBtn" class="brand w-full bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold py-3 rounded-full shadow-lg transition">
+        <!-- Confirm Password (signup only) -->
+        <div id="authConfirmField" class="mb-2 hidden">
+          <label for="authConfirmPassword" class="brand font-bold text-slate-900 text-sm block mb-2">Confirm Password</label>
+          <input type="password" id="authConfirmPassword" autocomplete="new-password"
+                 placeholder="••••••••"
+                 class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"
+                 aria-describedby="authConfirmPasswordError"/>
+          <p id="authConfirmPasswordError" class="field-error" aria-live="polite"></p>
+        </div>
+
+        <!-- Password rules hint (signup only) -->
+        <div id="passwordRules" class="hidden mb-5 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-slate-600">
+          <i class="fa-solid fa-shield-halved text-blue-500 mr-2"></i>
+          Use 8 or more characters with at least one capital letter, one number, and one symbol (like @, !, #).
+        </div>
+
+        <button type="submit" id="authSubmitBtn"
+                class="brand w-full bg-blue-700 hover:bg-blue-800 text-white text-base font-bold py-3.5 rounded-full shadow-lg transition">
           Sign In
         </button>
       </form>
+
     </div>
   </div>
 
-  <nav class="fixed top-0 inset-x-0 z-50 bg-blue-700 flex items-center justify-between px-8 h-14 shadow-md">
-    <span class="brand text-white text-lg font-bold"><i class="fa-solid fa-stethoscope text-blue-200 mr-2"></i>Med<span class="text-blue-200">Clarity</span></span>
-    <div class="hidden md:flex gap-7 text-sm text-blue-100">
-      <a href="javascript:void(0)" onclick="switchPage('view-home')" class="hover:text-white transition">Home</a>
-      <a href="javascript:void(0)" onclick="navigateToHomeSection('features')" class="hover:text-white transition">Features</a>
-      <a href="javascript:void(0)" onclick="navigateToHomeSection('how')" class="hover:text-white transition">How It Works</a>
-      <a href="javascript:void(0)" onclick="navigateToHomeSection('reviews')" class="hover:text-white transition">Reviews</a>
-      <a href="javascript:void(0)" onclick="navigateToHomeSection('contact')" class="hover:text-white transition">Contact</a>
-    </div>
-    <div class="flex items-center gap-3">
-      <div id="authProfile" class="hidden flex items-center gap-2 text-white">
-        <span class="brand text-xs font-bold text-blue-100"><i class="fa-solid fa-circle-user text-blue-200 mr-1.5 text-sm"></i>Hi, <span id="navUserName">Susan</span></span>
-        <button onclick="handleLogout()" class="brand text-[10px] font-bold bg-blue-800 text-blue-200 hover:text-white hover:bg-red-700 px-3 py-1 rounded-full transition">Log Out</button>
+  <!-- ═══════════════════════════════════════════════
+       TOP NAVIGATION BAR
+  ═══════════════════════════════════════════════ -->
+  <nav class="site-nav fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 h-14 shadow-md">
+
+    <!-- Brand -->
+    <button onclick="switchPage('view-home')"
+            class="brand text-white text-lg font-bold flex items-center gap-2 bg-transparent border-0 cursor-pointer">
+      <i class="fa-solid fa-stethoscope text-blue-200"></i>Med<span class="text-blue-200">Clarity</span>
+    </button>
+
+    <!-- Desktop nav links -->
+    <div class="hidden md:flex items-center gap-7 text-sm text-blue-100">
+      <button onclick="switchPage('view-home')" class="hover:text-white transition bg-transparent border-0 cursor-pointer text-blue-100 text-sm">Home</button>
+
+      <!-- ▼ Features Dropdown -->
+      <div class="nav-dropdown" onclick="toggleNavDropdown(this)">
+        <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+          Features <i class="fa-solid fa-chevron-down chevron"></i>
+        </button>
+        <div class="nav-dropdown-menu" role="menu">
+          <button class="nav-dropdown-item" role="menuitem" onclick="switchPage('view-upload')">
+            <i class="fa-solid fa-chart-pie"></i> Analyze Report
+          </button>
+          <button class="nav-dropdown-item" role="menuitem" onclick="switchPage('view-speech')">
+            <i class="fa-solid fa-volume-high"></i> Voice Assistant
+          </button>
+          <button class="nav-dropdown-item" role="menuitem" onclick="switchPage('view-geolocation')">
+            <i class="fa-solid fa-hospital"></i> Nearby Hospitals
+          </button>
+          <button class="nav-dropdown-item" role="menuitem" onclick="switchPage('view-preferences')">
+            <i class="fa-solid fa-sliders"></i> Preferences
+          </button>
+        </div>
       </div>
-      <button id="btnNavAuth" onclick="openAuthModal()" class="brand text-xs font-bold bg-white text-blue-700 hover:bg-blue-50 px-5 py-2 rounded-full transition shadow">Sign In</button>
+
+      <button onclick="navigateToHomeSection('how')" class="hover:text-white transition bg-transparent border-0 cursor-pointer text-blue-100 text-sm">How It Works</button>
+      <button onclick="navigateToHomeSection('reviews')" class="hover:text-white transition bg-transparent border-0 cursor-pointer text-blue-100 text-sm">Reviews</button>
+      <button onclick="navigateToHomeSection('contact')" class="hover:text-white transition bg-transparent border-0 cursor-pointer text-blue-100 text-sm">Contact</button>
+    </div>
+
+    <!-- Auth / Profile -->
+    <div class="flex items-center gap-3">
+      <div id="authProfile" class="hidden items-center gap-2 text-white flex">
+        <span class="brand text-xs font-bold text-blue-100">
+          <i class="fa-solid fa-circle-user text-blue-200 mr-1.5"></i>Hi, <span id="navUserName">Friend</span>
+        </span>
+        <button onclick="handleLogout()"
+                class="brand text-xs font-bold bg-blue-800 text-blue-200 hover:text-white hover:bg-red-700 px-3 py-1.5 rounded-full transition">
+          Log Out
+        </button>
+      </div>
+      <button id="btnNavAuth" onclick="openAuthModal()"
+              class="brand text-sm font-bold bg-white text-blue-700 hover:bg-blue-50 px-5 py-2 rounded-full transition shadow">
+        Sign In
+      </button>
+    </div>
+
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════
+       FEATURE PILL BAR (second navigation row)
+  ═══════════════════════════════════════════════ -->
+  <nav id="featureMenu" class="feature-menu" aria-label="MedClarity tools">
+    <div class="feature-menu-inner">
+      <button class="feature-tab active" data-page="view-home"        onclick="switchPage('view-home')">
+        <i class="fa-solid fa-house"></i><span>Home</span>
+      </button>
+      <button class="feature-tab" data-page="view-upload"       onclick="switchPage('view-upload')">
+        <i class="fa-solid fa-chart-pie"></i><span>Analyze Report</span>
+      </button>
+      <button class="feature-tab" data-page="view-speech"       onclick="switchPage('view-speech')">
+        <i class="fa-solid fa-volume-high"></i><span>Voice Assistant</span>
+      </button>
+      <button class="feature-tab" data-page="view-geolocation"  onclick="switchPage('view-geolocation')">
+        <i class="fa-solid fa-hospital"></i><span>Nearby Hospitals</span>
+      </button>
+      <button class="feature-tab" data-page="view-preferences"  onclick="switchPage('view-preferences')">
+        <i class="fa-solid fa-sliders"></i><span>Preferences</span>
+      </button>
     </div>
   </nav>
 
+  <!-- ═══════════════════════════════════════════════
+       HOME VIEW  (landing page — unchanged)
+  ═══════════════════════════════════════════════ -->
   <div id="view-home">
-    <section class="relative min-h-screen flex items-center pt-14 bg-cover bg-center" style="background-image:url('img2.jpg')">
+
+    <!-- HERO -->
+    <section class="hero-section relative min-h-screen flex items-center bg-cover bg-center"
+             style="background-image:url('img2.jpg')">
       <div class="w-full pl-2 py-28 flex justify-start">
-        <div class="max-w-md bg-white rounded-3xl p-10 shadow-2xl border border-slate-100 ml-16">
-          <span class="inline-block bg-blue-100 text-blue-700 text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full mb-5 brand -ml-4">AI-Powered Patient Literacy</span>
-          <h1 class="text-4xl font-extrabold text-slate-900 leading-tight mb-4">Understand Your Health.<br><span class="text-blue-700">Navigate with Confidence.</span></h1>
-          <p class="text-slate-500 text-sm mb-7">MedClarity turns complex medical reports into plain language and guides you through every hospital step — no degree needed.</p>
+        <div class="hero-panel max-w-md bg-white rounded-3xl p-10 shadow-2xl border border-slate-100 ml-16">
+          <span class="inline-block bg-blue-100 text-blue-700 text-xs font-bold tracking-widest uppercase px-3 py-1.5 rounded-full mb-5 brand -ml-4">
+            AI-Powered Patient Literacy
+          </span>
+          <h1 class="text-4xl font-extrabold text-slate-900 leading-tight mb-4">
+            Understand Your Health.<br>
+            <span class="text-blue-700">Navigate with Confidence.</span>
+          </h1>
+          <p class="text-slate-500 text-base mb-7">
+            MedClarity turns complex medical reports into plain, simple language and guides you through every hospital step — no medical degree needed.
+          </p>
           <div class="flex gap-3 mb-8">
-            <a href="javascript:void(0)" onclick="switchPage('view-upload')" class="brand bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-7 py-3 rounded-full shadow-lg transition">Get Started</a>
-            <a href="javascript:void(0)" onclick="navigateToHomeSection('features')" class="brand bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-7 py-3 rounded-full transition">Learn More</a>
+            <button onclick="switchPage('view-upload')"
+                    class="brand bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-7 py-3 rounded-full shadow-lg transition">
+              Get Started
+            </button>
+            <button onclick="navigateToHomeSection('features')"
+                    class="brand bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-7 py-3 rounded-full transition">
+              Learn More
+            </button>
           </div>
           <div class="flex gap-8 pt-6 border-t border-slate-100 text-center">
-            <div><div class="brand text-2xl font-bold text-blue-700">10K+</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Terms Decoded</div></div>
-            <div><div class="brand text-2xl font-bold text-blue-700">95%</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Clarity Rate</div></div>
-            <div><div class="brand text-2xl font-bold text-blue-700">24/7</div><div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Access</div></div>
+            <div>
+              <div class="brand text-2xl font-bold text-blue-700">10K+</div>
+              <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Terms Decoded</div>
+            </div>
+            <div>
+              <div class="brand text-2xl font-bold text-blue-700">95%</div>
+              <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Clarity Rate</div>
+            </div>
+            <div>
+              <div class="brand text-2xl font-bold text-blue-700">24/7</div>
+              <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Access</div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- FEATURES -->
     <section id="features" class="py-20 bg-slate-50">
       <div class="max-w-6xl mx-auto px-6 text-center mb-12">
         <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Platform Features</span>
-        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Everything You Need to Understand About Your Health</h2>
+        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Everything You Need to Understand Your Health</h2>
       </div>
       <div class="max-w-6xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
         <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div><div class="bg-orange-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="30" y="20" width="100" height="80" rx="8" fill="#fed7aa"/><rect x="44" y="34" width="72" height="8" rx="3" fill="#fb923c"/><rect x="44" y="48" width="52" height="6" rx="3" fill="#fdba74"/><rect x="44" y="60" width="60" height="6" rx="3" fill="#fdba74"/><rect x="44" y="72" width="40" height="6" rx="3" fill="#fdba74"/><circle cx="118" cy="38" r="14" fill="#3b82f6"/><path d="M112 38l4 4 8-8" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
-          <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Report Decoder</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Converts lab reports and prescriptions into plain, everyday language instantly.</p></div></div>
-          <div class="px-6 pb-6"><a href="javascript:void(0)" onclick="switchPage('view-upload')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Decode Now</a></div>
+          <div>
+            <div class="bg-orange-100 h-44 flex items-center justify-center">
+              <svg viewBox="0 0 160 120" class="w-36"><rect x="30" y="20" width="100" height="80" rx="8" fill="#fed7aa"/><rect x="44" y="34" width="72" height="8" rx="3" fill="#fb923c"/><rect x="44" y="48" width="52" height="6" rx="3" fill="#fdba74"/><rect x="44" y="60" width="60" height="6" rx="3" fill="#fdba74"/><rect x="44" y="72" width="40" height="6" rx="3" fill="#fdba74"/><circle cx="118" cy="38" r="14" fill="#3b82f6"/><path d="M112 38l4 4 8-8" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+            </div>
+            <div class="p-6">
+              <h3 class="brand font-bold text-slate-900 text-base mb-2">Report Decoder</h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-5">Converts lab reports and prescriptions into plain, everyday language instantly.</p>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <button onclick="switchPage('view-upload')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center w-full">Decode Now</button>
+          </div>
         </article>
+
         <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div><div class="bg-blue-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="15" width="55" height="90" rx="6" fill="#bfdbfe"/><rect x="28" y="28" width="38" height="5" rx="2" fill="#3b82f6"/><rect x="28" y="40" width="30" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="51" width="34" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="62" width="26" height="4" rx="2" fill="#93c5fd"/><rect x="88" y="15" width="52" height="90" rx="6" fill="#1d4ed8"/><text x="114" y="52" font-size="9" fill="white" text-anchor="middle" font-family="sans-serif">STEP</text><text x="114" y="64" font-size="14" fill="#93c5fd" text-anchor="middle" font-family="sans-serif" font-weight="bold">1→4</text></svg></div>
-          <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Journey Navigator</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Step-by-step hospital guidance from registration to discharge follow-up.</p></div></div>
-          <div class="px-6 pb-6"><a href="javascript:void(0)" onclick="switchPage('view-geolocation')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Navigate Now</a></div>
+          <div>
+            <div class="bg-blue-100 h-44 flex items-center justify-center">
+              <svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="15" width="55" height="90" rx="6" fill="#bfdbfe"/><rect x="28" y="28" width="38" height="5" rx="2" fill="#3b82f6"/><rect x="28" y="40" width="30" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="51" width="34" height="4" rx="2" fill="#93c5fd"/><rect x="28" y="62" width="26" height="4" rx="2" fill="#93c5fd"/><rect x="88" y="15" width="52" height="90" rx="6" fill="#1d4ed8"/><text x="114" y="52" font-size="9" fill="white" text-anchor="middle" font-family="sans-serif">STEP</text><text x="114" y="64" font-size="14" fill="#93c5fd" text-anchor="middle" font-family="sans-serif" font-weight="bold">1→4</text></svg>
+            </div>
+            <div class="p-6">
+              <h3 class="brand font-bold text-slate-900 text-base mb-2">Hospital Navigator</h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-5">Find hospitals near you, get directions, and see which ones have emergency care.</p>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <button onclick="switchPage('view-geolocation')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center w-full">Navigate Now</button>
+          </div>
         </article>
+
         <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div><div class="bg-green-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="25" y="20" width="110" height="80" rx="8" fill="#bbf7d0"/><rect x="38" y="34" width="84" height="10" rx="4" fill="#22c55e"/><rect x="38" y="52" width="64" height="7" rx="3" fill="#86efac"/><rect x="38" y="65" width="74" height="7" rx="3" fill="#86efac"/><rect x="38" y="78" width="50" height="7" rx="3" fill="#86efac"/><circle cx="128" cy="34" r="10" fill="#16a34a"/><text x="128" y="38" font-size="11" fill="white" text-anchor="middle" font-family="sans-serif">?</text></svg></div>
-          <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Health Literacy Hub</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Plain-language guides on diseases, tests, and procedures for every patient.</p></div></div>
-          <div class="px-6 pb-6"><a href="javascript:void(0)" onclick="switchPage('view-speech')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Explore Hub</a></div>
+          <div>
+            <div class="bg-green-100 h-44 flex items-center justify-center">
+              <svg viewBox="0 0 160 120" class="w-36"><rect x="25" y="20" width="110" height="80" rx="8" fill="#bbf7d0"/><rect x="38" y="34" width="84" height="10" rx="4" fill="#22c55e"/><rect x="38" y="52" width="64" height="7" rx="3" fill="#86efac"/><rect x="38" y="65" width="74" height="7" rx="3" fill="#86efac"/><rect x="38" y="78" width="50" height="7" rx="3" fill="#86efac"/><circle cx="128" cy="34" r="10" fill="#16a34a"/><text x="128" y="38" font-size="11" fill="white" text-anchor="middle" font-family="sans-serif">?</text></svg>
+            </div>
+            <div class="p-6">
+              <h3 class="brand font-bold text-slate-900 text-base mb-2">Voice Reader</h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-5">Have your health report read to you aloud — perfect if reading is difficult.</p>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <button onclick="switchPage('view-speech')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center w-full">Listen Now</button>
+          </div>
         </article>
+
         <article class="card bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div><div class="bg-yellow-100 h-44 flex items-center justify-center"><svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="20" width="120" height="80" rx="8" fill="#fef08a"/><rect x="32" y="32" width="95" height="12" rx="4" fill="#eab308"/><rect x="32" y="52" width="75" height="7" rx="3" fill="#fde047"/><rect x="32" y="65" width="85" height="7" rx="3" fill="#fde047"/><rect x="32" y="78" width="60" height="7" rx="3" fill="#fde047"/><circle cx="120" cy="88" r="12" fill="#3b82f6"/><text x="120" y="93" font-size="14" fill="white" text-anchor="middle" font-family="sans-serif">✓</text></svg></div>
-          <div class="p-6"><h3 class="brand font-bold text-slate-900 text-base mb-2">Patient Preferences</h3><p class="text-slate-500 text-sm leading-relaxed mb-5">Save and persist name, preferred language, and hospital settings locally.</p></div></div>
-          <div class="px-6 pb-6"><a href="javascript:void(0)" onclick="switchPage('view-preferences')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center">Set Preferences</a></div>
+          <div>
+            <div class="bg-yellow-100 h-44 flex items-center justify-center">
+              <svg viewBox="0 0 160 120" class="w-36"><rect x="20" y="20" width="120" height="80" rx="8" fill="#fef08a"/><rect x="32" y="32" width="95" height="12" rx="4" fill="#eab308"/><rect x="32" y="52" width="75" height="7" rx="3" fill="#fde047"/><rect x="32" y="65" width="85" height="7" rx="3" fill="#fde047"/><rect x="32" y="78" width="60" height="7" rx="3" fill="#fde047"/><circle cx="120" cy="88" r="12" fill="#3b82f6"/><text x="120" y="93" font-size="14" fill="white" text-anchor="middle" font-family="sans-serif">✓</text></svg>
+            </div>
+            <div class="p-6">
+              <h3 class="brand font-bold text-slate-900 text-base mb-2">My Preferences</h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-5">Save your name, language, and preferred hospital and see your personal profile card.</p>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <button onclick="switchPage('view-preferences')" class="brand text-xs font-bold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-blue-700 transition block text-center w-full">Set Preferences</button>
+          </div>
         </article>
+
       </div>
     </section>
 
+    <!-- HOW IT WORKS -->
     <section id="how" class="py-20 bg-white border-y border-slate-100">
       <div class="max-w-6xl mx-auto px-6 text-center mb-14">
         <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Process</span>
@@ -140,23 +319,28 @@
       <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="step-line text-center">
           <div class="w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">01</div>
-          <h3 class="brand font-bold text-slate-900 text-base mb-2">Upload Report</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Photo or PDF — lab report, prescription, or discharge summary.</p>
+          <h3 class="brand font-bold text-slate-900 text-base mb-2">Upload Report</h3>
+          <p class="text-slate-500 text-sm leading-relaxed px-2">Photo or PDF — lab report, prescription, or discharge summary.</p>
         </div>
         <div class="step-line text-center">
           <div class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">02</div>
-          <h3 class="brand font-bold text-slate-900 text-base mb-2">AI Decodes It</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Every term, value and abbreviation translated into simple words.</p>
+          <h3 class="brand font-bold text-slate-900 text-base mb-2">We Decode It</h3>
+          <p class="text-slate-500 text-sm leading-relaxed px-2">Every term, value and abbreviation translated into simple words.</p>
         </div>
         <div class="step-line text-center">
           <div class="w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">03</div>
-          <h3 class="brand font-bold text-slate-900 text-base mb-2">Explore Guidance</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Personalised next steps and questions to ask your doctor.</p>
+          <h3 class="brand font-bold text-slate-900 text-base mb-2">Explore Guidance</h3>
+          <p class="text-slate-500 text-sm leading-relaxed px-2">Understand what to ask your doctor and what steps to take next.</p>
         </div>
         <div class="step-line text-center">
           <div class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg z-10 relative font-bold brand text-lg">04</div>
-          <h3 class="brand font-bold text-slate-900 text-base mb-2">Decide Confidently</h3><p class="text-slate-500 text-sm leading-relaxed px-2">Walk into your appointment prepared, leave knowing what's next.</p>
+          <h3 class="brand font-bold text-slate-900 text-base mb-2">Decide Confidently</h3>
+          <p class="text-slate-500 text-sm leading-relaxed px-2">Walk into your appointment prepared, leave knowing what's next.</p>
         </div>
       </div>
     </section>
 
+    <!-- REVIEWS -->
     <section id="reviews" class="py-20 bg-slate-50">
       <div class="max-w-6xl mx-auto px-6 text-center mb-14">
         <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1">Patient Stories</span>
@@ -166,225 +350,350 @@
         <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
           <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
           <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"MedClarity explained my blood test in 2 minutes. I finally understood my cholesterol and knew exactly what to change in my diet."</p>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center text-white text-sm font-bold">RK</div><div><div class="brand text-base font-bold text-slate-900">Ravi Kumar</div><div class="text-sm text-slate-500">Bangalore · Patient</div></div></div>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center text-white text-sm font-bold">RK</div>
+            <div><div class="brand text-base font-bold text-slate-900">Ravi Kumar</div><div class="text-sm text-slate-500">Bangalore · Patient</div></div>
+          </div>
         </div>
         <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
           <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
           <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"The hospital navigator was a lifesaver when I travelled to a new city for surgery. Knew exactly where to go and what documents to carry."</p>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold">PJ</div><div><div class="brand text-base font-bold text-slate-900">Priya Joshi</div><div class="text-sm text-slate-500">Pune · Caregiver</div></div></div>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold">PJ</div>
+            <div><div class="brand text-base font-bold text-slate-900">Priya Joshi</div><div class="text-sm text-slate-500">Pune · Caregiver</div></div>
+          </div>
         </div>
         <div class="bg-white border border-slate-100 rounded-2xl p-8 shadow-md min-h-[280px]">
           <div class="flex gap-1 text-yellow-400 mb-4"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
-          <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"Medical jargon always scared me. MedClarity made my discharge summary feel like a friendly letter. My daughter set it up and I use it weekly."</p>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white text-sm font-bold">SM</div><div><div class="brand text-base font-bold text-slate-900">Suresh Mehta</div><div class="text-sm text-slate-500">Chennai · Senior Patient</div></div></div>
+          <p class="text-slate-600 text-base leading-relaxed mb-8 italic">"Medical jargon always scared me. MedClarity made my discharge summary feel like a friendly letter. My daughter set it up and I use it every week."</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white text-sm font-bold">SM</div>
+            <div><div class="brand text-base font-bold text-slate-900">Suresh Mehta</div><div class="text-sm text-slate-500">Chennai · Senior Patient</div></div>
+          </div>
         </div>
       </div>
     </section>
-  </div>
 
+  </div><!-- /view-home -->
+
+  <!-- ═══════════════════════════════════════════════
+       ANALYZE REPORT VIEW
+  ═══════════════════════════════════════════════ -->
   <div id="view-upload" class="hidden min-h-screen bg-white pb-16">
-    <div class="max-w-3xl mx-auto px-6 pt-24 pb-4">
-      <button onclick="switchPage('view-home')" class="brand text-xs font-bold text-blue-700 hover:text-blue-800 transition flex items-center gap-2">
-        <i class="fa-solid fa-arrow-left"></i> Back to Home
-      </button>
-    </div>
-
     <section id="upload" class="py-10">
       <div class="max-w-6xl mx-auto px-6 text-center mb-10">
-        <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> File System Access API + Drag & Drop API</span>
-        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Medical Report Portal</h2>
-        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Upload your medical files securely using standard desktop mechanics or advanced drag-and-drop systems.</p>
+        <span class="section-kicker"><i class="fa-solid fa-chart-pie"></i> Canvas-powered report insights</span>
+        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Understand Your Medical Report</h2>
+        <p class="text-slate-500 text-base mt-3 max-w-xl mx-auto">
+          Upload your medical file below. We will read it and explain what it means in simple words — no medical knowledge needed.
+        </p>
       </div>
       <div class="max-w-3xl mx-auto px-6">
         <div class="card bg-white rounded-2xl border border-slate-100 shadow-md p-8">
+
+          <!-- Drop zone -->
           <div id="dropZone" class="drop-zone mb-6">
             <i class="fa-solid fa-file-medical text-5xl text-blue-300 mb-4 block"></i>
-            <p class="brand font-bold text-slate-700 text-lg mb-1">Drag & Drop Your Report Here</p>
-            <p class="text-slate-400 text-sm mb-4">Supports PDF, Word (DOCX), PNG, JPG, and TXT files</p>
-            <button onclick="openFilePickerNative()" class="brand text-xs font-bold bg-blue-700 text-white px-6 py-2.5 rounded-full hover:bg-blue-800 transition cursor-pointer inline-block shadow-lg">
-              <i class="fa-solid fa-folder-open mr-2"></i>Select via File Picker
+            <p class="brand font-bold text-slate-700 text-xl mb-1">Drag &amp; Drop Your Report Here</p>
+            <p class="text-slate-400 text-base mb-4">Supports PDF, Word (DOCX), image (PNG / JPG), and text files (TXT)</p>
+            <button onclick="openFilePickerNative()"
+                    class="brand text-sm font-bold bg-blue-700 text-white px-7 py-3 rounded-full hover:bg-blue-800 transition cursor-pointer inline-block shadow-lg">
+              <i class="fa-solid fa-folder-open mr-2"></i>Choose a File from My Device
             </button>
           </div>
-          
+
+          <!-- File details -->
           <div id="fileDetails" class="hidden bg-slate-50 rounded-xl p-6 border border-slate-200">
-            <h3 class="brand font-bold text-slate-900 text-base mb-4"><i class="fa-solid fa-circle-check text-green-500 mr-2"></i>Upload Successful</h3>
+            <h3 class="brand font-bold text-slate-900 text-base mb-4">
+              <i class="fa-solid fa-circle-check text-green-500 mr-2"></i>File Received!
+            </h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="bg-white rounded-lg p-4 border border-slate-100 text-center">
                 <i class="fa-solid fa-file text-blue-500 text-xl mb-2"></i>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">File Name</p>
+                <p class="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">File Name</p>
                 <p id="fileName" class="brand text-sm font-bold text-slate-800 break-all">—</p>
               </div>
               <div class="bg-white rounded-lg p-4 border border-slate-100 text-center">
                 <i class="fa-solid fa-weight-scale text-indigo-500 text-xl mb-2"></i>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">File Size</p>
+                <p class="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">File Size</p>
                 <p id="fileSize" class="brand text-sm font-bold text-slate-800">—</p>
               </div>
               <div class="bg-white rounded-lg p-4 border border-slate-100 text-center">
                 <i class="fa-solid fa-tag text-teal-500 text-xl mb-2"></i>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">File Type</p>
+                <p class="text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">File Type</p>
                 <p id="fileType" class="brand text-sm font-bold text-slate-800">—</p>
               </div>
             </div>
           </div>
-          
-          <div class="mt-8 text-right">
-            <button onclick="switchPage('view-speech')" class="brand text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition shadow-lg inline-flex items-center gap-2">
-              Next: Assistive Voice Readout <i class="fa-solid fa-arrow-right"></i>
-            </button>
+
+          <!-- Loading indicator -->
+          <div id="analysisLoading" class="hidden mt-6 rounded-xl border border-blue-100 bg-blue-50 p-6 text-center" role="status" aria-live="polite">
+            <i class="fa-solid fa-wave-square text-blue-600 text-2xl analysis-pulse"></i>
+            <p class="brand mt-3 text-base font-bold text-blue-950">Reading your report…</p>
+            <p class="mt-1 text-sm text-slate-500">Looking for health terms, measurements, and important words.</p>
           </div>
+
+          <!-- Error box -->
+          <div id="analysisError" class="hidden mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-base text-amber-900" role="alert"></div>
+
+          <!-- Analysis Dashboard -->
+          <section id="analysisDashboard" class="hidden mt-6 api-section" aria-labelledby="analysisTitle">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <span class="brand text-xs font-bold uppercase tracking-widest text-blue-700">Canvas API Analysis</span>
+                <h3 id="analysisTitle" class="brand text-xl font-extrabold text-slate-900 mt-1">Your Report Summary</h3>
+              </div>
+              <span class="self-start rounded-full bg-green-100 px-3 py-1.5 text-sm font-bold text-green-700">
+                <i class="fa-solid fa-circle-check mr-1"></i>Analysis complete
+              </span>
+            </div>
+
+            <!-- Metric tiles -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Health terms</p>
+                <p id="metricTerms" class="brand mt-1 text-2xl font-extrabold text-blue-700">0</p>
+                <p class="text-xs text-slate-400 mt-1">medical words found</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Measurements</p>
+                <p id="metricReadings" class="brand mt-1 text-2xl font-extrabold text-indigo-600">0</p>
+                <p class="text-xs text-slate-400 mt-1">numbers with units</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Review flags</p>
+                <p id="metricFlags" class="brand mt-1 text-2xl font-extrabold text-amber-600">0</p>
+                <p class="text-xs text-slate-400 mt-1">words like "high" or "low"</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Words read</p>
+                <p id="metricWords" class="brand mt-1 text-2xl font-extrabold text-teal-600">0</p>
+                <p class="text-xs text-slate-400 mt-1">total words in report</p>
+              </div>
+            </div>
+
+            <!-- Summary + Canvas chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                <h4 class="brand text-base font-bold text-slate-900 mb-3">
+                  <i class="fa-solid fa-wand-magic-sparkles text-blue-500 mr-2"></i>What Your Report Says — in Plain Words
+                </h4>
+                <p id="analysisSummary" class="text-base leading-7 text-slate-600"></p>
+                <div id="analysisFindings" class="mt-4 space-y-3"></div>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                <h4 class="brand text-base font-bold text-slate-900 mb-1">
+                  <i class="fa-solid fa-chart-column text-indigo-500 mr-2"></i>Report Overview (Chart)
+                </h4>
+                <p class="text-xs text-slate-400 mb-3">Drawn using the Canvas API built into your browser</p>
+                <canvas id="analysisCanvas" width="520" height="290"
+                        role="img" aria-label="Bar chart showing report analysis results"></canvas>
+              </div>
+            </div>
+
+            <p class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
+              <i class="fa-solid fa-shield-heart text-blue-500 mr-1"></i>
+              Your file is read entirely in your browser — nothing is uploaded to the internet. This summary is educational and cannot replace advice from your doctor.
+            </p>
+          </section>
+
         </div>
       </div>
     </section>
-  </div>
+  </div><!-- /view-upload -->
 
+  <!-- ═══════════════════════════════════════════════
+       VOICE ASSISTANT VIEW
+  ═══════════════════════════════════════════════ -->
   <div id="view-speech" class="hidden min-h-screen bg-slate-50 pb-16">
-    <div class="max-w-3xl mx-auto px-6 pt-24 pb-4">
-      <button onclick="switchPage('view-home')" class="brand text-xs font-bold text-blue-700 hover:text-blue-800 transition flex items-center gap-2">
-        <i class="fa-solid fa-arrow-left"></i> Back to Home
-      </button>
-    </div>
-
     <section id="speech" class="py-10">
       <div class="max-w-6xl mx-auto px-6 text-center mb-10">
-        <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1"><i class="fa-solid fa-volume-high mr-1"></i> Web Speech API (Synthesis & Recognition)</span>
-        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Interactive Voice Dashboard</h2>
-        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Have your health data read aloud using systemic screen voices, or dictate your symptoms natively.</p>
+        <span class="section-kicker"><i class="fa-solid fa-volume-high"></i> Accessible voice tools</span>
+        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Read My Report Aloud</h2>
+        <p class="text-slate-500 text-base mt-3 max-w-xl mx-auto">
+          Paste your report text below and press <strong>Read Report Aloud</strong>. You can also tap the microphone to speak and we will write it down for you.
+        </p>
       </div>
       <div class="max-w-3xl mx-auto px-6">
         <div class="card bg-white rounded-2xl border border-slate-100 shadow-md p-8">
-          
-          <div class="mb-4 flex justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-xl">
+
+          <!-- Dictation bar -->
+          <div class="mb-5 flex justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-xl gap-4">
             <div>
-              <h4 class="brand font-bold text-sm text-blue-950">Dictate Changes</h4>
-              <p class="text-xs text-slate-500">Don't want to type? Click the mic to dictate changes or list active symptoms directly.</p>
+              <h4 class="brand font-bold text-base text-blue-950">Speak Instead of Typing</h4>
+              <p class="text-sm text-slate-500 mt-0.5">Tap the microphone button and speak. Your words will appear in the box below.</p>
             </div>
-            <button id="btnDictate" onclick="toggleDictation()" class="w-12 h-12 flex items-center justify-center bg-blue-700 hover:bg-blue-800 text-white rounded-full transition shadow shadow-blue-300">
-              <i id="micIcon" class="fa-solid fa-microphone"></i>
+            <button id="btnDictate" onclick="toggleDictation()"
+                    class="w-14 h-14 flex items-center justify-center bg-blue-700 hover:bg-blue-800 text-white rounded-full transition shadow shadow-blue-300 shrink-0"
+                    aria-label="Toggle microphone for speech input">
+              <i id="micIcon" class="fa-solid fa-microphone text-xl"></i>
             </button>
           </div>
 
-          <label for="speechText" class="brand font-bold text-slate-900 text-sm block mb-2"><i class="fa-solid fa-notes-medical text-blue-500 mr-2"></i>Simplified Report Transcript</label>
-          <textarea id="speechText" rows="6" class="w-full border border-slate-200 rounded-xl p-4 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition resize-none" placeholder="Paste or type medical notes here...">Your Complete Blood Count (CBC) results are normal. Hemoglobin is 14.2 g/dL, which is within the healthy range of 13.5 to 17.5 for adult males. White Blood Cell count is 7,500 per microliter, indicating no signs of infection. Platelet count is 250,000 per microliter, which is normal. Overall, your blood health looks excellent. Continue your current diet and exercise routine. Next checkup recommended in 6 months.</textarea>
-          
+          <!-- Text area -->
+          <label for="speechText" class="brand font-bold text-slate-900 text-sm block mb-2">
+            <i class="fa-solid fa-notes-medical text-blue-500 mr-2"></i>Report Text (paste or type here)
+          </label>
+          <textarea id="speechText" rows="7"
+                    class="w-full border border-slate-200 rounded-xl p-4 text-base text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition resize-none"
+                    placeholder="Paste your medical notes here, then press 'Read Report Aloud'…">Your Complete Blood Count (CBC) results are normal. Hemoglobin is 14.2 g/dL, which is within the healthy range for adult males. White Blood Cell count is 7,500 per microliter — no signs of infection. Platelet count is 250,000 per microliter, which is normal. Overall, your blood health looks excellent. Next checkup recommended in 6 months.</textarea>
+
+          <!-- Voice selector -->
           <div class="mt-4">
-            <label for="voiceSelect" class="brand font-bold text-slate-700 text-xs block mb-1.5">Select Reading Voice Engine:</label>
-            <select id="voiceSelect" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-700 bg-white focus:ring-2 focus:ring-blue-300 outline-none transition"></select>
+            <label for="voiceSelect" class="brand font-bold text-slate-700 text-sm block mb-1.5">
+              Choose a Reading Voice:
+            </label>
+            <select id="voiceSelect"
+                    class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-blue-300 outline-none transition">
+            </select>
           </div>
 
-          <div class="flex flex-wrap gap-3 mt-5">
-            <button id="btnReadAloud" onclick="readReportAloud()" class="brand text-xs font-bold bg-blue-700 text-white px-6 py-2.5 rounded-full hover:bg-blue-800 transition shadow-lg">
+          <!-- Action buttons -->
+          <div class="flex flex-wrap gap-3 mt-6">
+            <button id="btnReadAloud" onclick="readReportAloud()"
+                    class="brand text-sm font-bold bg-blue-700 text-white px-7 py-3 rounded-full hover:bg-blue-800 transition shadow-lg">
               <i class="fa-solid fa-play mr-2"></i>Read Report Aloud
             </button>
-            <button id="btnStopReading" onclick="stopReading()" class="brand text-xs font-bold bg-slate-200 text-slate-700 px-6 py-2.5 rounded-full hover:bg-red-100 hover:text-red-600 transition">
+            <button onclick="stopReading()"
+                    class="brand text-sm font-bold bg-slate-200 text-slate-700 px-7 py-3 rounded-full hover:bg-red-100 hover:text-red-600 transition">
               <i class="fa-solid fa-stop mr-2"></i>Stop Reading
             </button>
-            <button id="btnShareReport" onclick="shareReport()" class="brand text-xs font-bold bg-green-600 text-white px-6 py-2.5 rounded-full hover:bg-green-700 transition shadow-lg">
+            <button onclick="shareReport()"
+                    class="brand text-sm font-bold bg-blue-600 text-white px-7 py-3 rounded-full hover:bg-blue-700 transition shadow-lg">
               <i class="fa-solid fa-share-nodes mr-2"></i>Share Summary
             </button>
           </div>
-          
-          <div id="speechStatus" class="mt-4 text-sm text-slate-400 hidden">
-            <i class="fa-solid fa-circle text-green-400 animate-pulse mr-1"></i> <span id="speechStatusText">Processing audio matrix...</span>
+
+          <!-- Status -->
+          <div id="speechStatus" class="mt-4 text-base text-slate-400 hidden">
+            <i class="fa-solid fa-circle text-green-400 animate-pulse mr-1"></i>
+            <span id="speechStatusText">Reading aloud…</span>
           </div>
-          
-          <div class="mt-8 text-right border-t border-slate-100 pt-6">
-            <button onclick="switchPage('view-geolocation')" class="brand text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition shadow-lg inline-flex items-center gap-2">
-              Next: Nearby Hospital Ecosystem <i class="fa-solid fa-arrow-right"></i>
+
+        </div>
+      </div>
+    </section>
+  </div><!-- /view-speech -->
+
+  <!-- ═══════════════════════════════════════════════
+       NEARBY HOSPITALS VIEW
+  ═══════════════════════════════════════════════ -->
+  <div id="view-geolocation" class="hidden min-h-screen bg-white pb-16">
+    <section id="geolocation" class="py-10">
+      <div class="max-w-6xl mx-auto px-6 mb-8">
+        <span class="section-kicker"><i class="fa-solid fa-location-dot"></i> Live hospital finder</span>
+        <div class="mt-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+          <div>
+            <h2 class="text-4xl font-extrabold text-slate-900">Find a Hospital Near You</h2>
+            <p class="text-slate-500 text-base mt-3 max-w-2xl">
+              Press the button below and allow location access. We will show you the nearest hospitals with directions and contact numbers.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <span id="permissionBadge" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold bg-slate-100 text-slate-600">
+              <i class="fa-solid fa-shield"></i> Location unknown
+            </span>
+            <button id="btnGetLocation" onclick="getMyLocation()"
+                    class="brand text-base font-bold bg-blue-700 text-white px-7 py-3 rounded-xl hover:bg-blue-800 transition shadow-lg shadow-blue-200">
+              <i class="fa-solid fa-crosshairs mr-2"></i>Find Hospitals Near Me
             </button>
           </div>
         </div>
       </div>
-    </section>
-  </div>
 
-  <div id="view-geolocation" class="hidden min-h-screen bg-white pb-16">
-    <div class="max-w-3xl mx-auto px-6 pt-24 pb-4">
-      <button onclick="switchPage('view-home')" class="brand text-xs font-bold text-blue-700 hover:text-blue-800 transition flex items-center gap-2">
-        <i class="fa-solid fa-arrow-left"></i> Back to Home
-      </button>
-    </div>
-
-    <section id="geolocation" class="py-10">
-      <div class="max-w-6xl mx-auto px-6 text-center mb-10">
-        <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1"><i class="fa-solid fa-location-dot mr-1"></i> Geolocation API + Permissions Query</span>
-        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Find Nearby Healthcare Facilities</h2>
-        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Locate regional centers near your physical space securely by querying environmental coordinates.</p>
-      </div>
-      <div class="max-w-3xl mx-auto px-6">
-        <div class="card bg-white rounded-2xl border border-slate-100 shadow-md p-8 text-center">
-          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <!-- Empty state -->
+      <div id="hospitalEmptyState" class="max-w-6xl mx-auto px-6">
+        <div class="card rounded-3xl border border-blue-100 bg-white p-10 text-center">
+          <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
             <i class="fa-solid fa-map-location-dot text-blue-600 text-3xl"></i>
           </div>
-          
-          <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hidden" id="permissionBadge">
-            <i class="fa-solid fa-shield"></i> Permission Status: Unknown
-          </div>
+          <h3 class="brand text-xl font-bold text-slate-900">Ready to find hospitals near you</h3>
+          <p class="mt-2 text-base text-slate-500 max-w-md mx-auto">
+            Tap the button above and allow location access when asked. Your location stays private and is never stored.
+          </p>
+        </div>
+      </div>
 
-          <div>
-            <button id="btnGetLocation" onclick="getMyLocation()" class="brand text-xs font-bold bg-blue-700 text-white px-8 py-3 rounded-full hover:bg-blue-800 transition shadow-lg mb-6">
-              <i class="fa-solid fa-crosshairs mr-2"></i>Map My Location Coordinates
-            </button>
-          </div>
+      <!-- Loading -->
+      <div id="hospitalLoading" class="hidden max-w-6xl mx-auto px-6">
+        <div class="rounded-3xl border border-blue-100 bg-white p-10 text-center">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600"></i>
+          <p class="brand mt-4 text-base font-bold text-slate-800">Finding nearby hospitals…</p>
+          <p class="mt-1 text-sm text-slate-400">Checking facilities within approximately 8 km.</p>
+        </div>
+      </div>
 
-          <div id="locationResult" class="hidden">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                <i class="fa-solid fa-arrows-up-down text-blue-500 text-lg mb-2"></i>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Latitude</p>
-                <p id="latitude" class="brand text-lg font-bold text-slate-800">—</p>
+      <!-- Results -->
+      <div id="locationResult" class="hidden max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_.95fr] gap-6 items-start">
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="brand text-base font-bold text-blue-950"><span id="hospitalCount">0</span> hospitals found</p>
+                <p id="locationStatus" class="text-sm text-blue-700 mt-1">Sorted by distance from your location</p>
               </div>
-              <div class="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                <i class="fa-solid fa-arrows-left-right text-indigo-500 text-lg mb-2"></i>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Longitude</p>
-                <p id="longitude" class="brand text-lg font-bold text-slate-800">—</p>
+              <div class="flex gap-2">
+                <a id="mapsLink" href="#" target="_blank" rel="noopener"
+                   class="brand text-xs font-bold bg-white text-blue-700 border border-blue-200 px-3 py-2 rounded-xl hover:bg-blue-100 transition">
+                  <i class="fa-solid fa-location-arrow mr-1"></i>My location
+                </a>
+                <a id="hospitalSearchLink" href="#" target="_blank" rel="noopener"
+                   class="brand text-xs font-bold bg-blue-700 text-white px-3 py-2 rounded-xl hover:bg-blue-800 transition">
+                  <i class="fa-brands fa-google mr-1"></i>Google Maps
+                </a>
               </div>
             </div>
-            <a id="mapsLink" href="#" target="_blank" class="brand text-xs font-bold bg-green-600 text-white px-6 py-2.5 rounded-full hover:bg-green-700 transition shadow-lg inline-block mb-4">
-              <i class="fa-solid fa-map mr-2"></i>Open in Google Maps
-            </a>
-            <a id="hospitalSearchLink" href="#" target="_blank" class="brand text-xs font-bold bg-indigo-600 text-white px-6 py-2.5 rounded-full hover:bg-indigo-700 transition shadow-lg inline-block mb-4 ml-2">
-              <i class="fa-solid fa-hospital mr-2"></i>Search Nearby Hospitals
-            </a>
-            <p id="locationStatus" class="text-sm text-green-600 font-semibold mt-3"><i class="fa-solid fa-circle-check mr-1"></i>Nearest Hospital Search Ready</p>
+            <div id="hospitalList" class="space-y-3" aria-live="polite"></div>
           </div>
-          
-          <div id="locationError" class="hidden mt-4 bg-red-50 text-red-600 text-sm rounded-xl p-4 border border-red-200">
-            <i class="fa-solid fa-triangle-exclamation mr-2"></i><span id="locationErrorText"></span>
-          </div>
-          
-          <div class="mt-8 text-right border-t border-slate-100 pt-6">
-            <button onclick="switchPage('view-preferences')" class="brand text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition shadow-lg inline-flex items-center gap-2">
-              Next: Save Local Preferences <i class="fa-solid fa-arrow-right"></i>
-            </button>
+          <div class="lg:sticky lg:top-36 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl shadow-blue-100/60">
+            <iframe id="hospitalMap" title="Google map showing nearby hospitals"
+                    class="w-full h-[520px]" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade" src="about:blank"></iframe>
           </div>
         </div>
       </div>
+
+      <!-- Error -->
+      <div id="locationError" class="hidden max-w-6xl mx-auto px-6 mt-4">
+        <div class="bg-red-50 text-red-700 text-base rounded-2xl p-4 border border-red-200">
+          <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+          <span id="locationErrorText"></span>
+        </div>
+      </div>
+
     </section>
-  </div>
+  </div><!-- /view-geolocation -->
 
+  <!-- ═══════════════════════════════════════════════
+       PREFERENCES VIEW  (Canvas API profile card)
+  ═══════════════════════════════════════════════ -->
   <div id="view-preferences" class="hidden min-h-screen bg-slate-50 pb-16">
-    <div class="max-w-3xl mx-auto px-6 pt-24 pb-4">
-      <button onclick="switchPage('view-home')" class="brand text-xs font-bold text-blue-700 hover:text-blue-800 transition flex items-center gap-2">
-        <i class="fa-solid fa-arrow-left"></i> Back to Home
-      </button>
-    </div>
-
     <section id="preferences" class="py-10">
       <div class="max-w-6xl mx-auto px-6 text-center mb-10">
-        <span class="brand text-sm font-bold uppercase tracking-widest text-blue-700 block mb-1"><i class="fa-solid fa-floppy-disk mr-1"></i> Local Storage Engine</span>
-        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">Patient Preferences</h2>
-        <p class="text-slate-500 text-sm mt-3 max-w-xl mx-auto">Save configurations straight inside your personal sandboxed user directory.</p>
+        <span class="section-kicker"><i class="fa-solid fa-sliders"></i> Your care settings</span>
+        <h2 class="text-4xl font-extrabold text-slate-900 mt-2">My Preferences</h2>
+        <p class="text-slate-500 text-base mt-3 max-w-xl mx-auto">
+          Fill in your details below and press <strong>Save</strong>. Your personal profile card will appear at the bottom, drawn using the Canvas API.
+        </p>
       </div>
-      <div class="max-w-3xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto px-6 space-y-6">
+
+        <!-- Form card -->
         <div class="card bg-white rounded-2xl border border-slate-100 shadow-md p-8">
           <div class="mb-5">
-            <label for="prefName" class="brand font-bold text-slate-900 text-sm block mb-2"><i class="fa-solid fa-user text-blue-500 mr-2"></i>Patient Name</label>
-            <input type="text" id="prefName" placeholder="e.g. Susan Matilda" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
+            <label for="prefName" class="brand font-bold text-slate-900 text-base block mb-2">
+              <i class="fa-solid fa-user text-blue-500 mr-2"></i>Your Name
+            </label>
+            <input type="text" id="prefName" placeholder="e.g. Susan Matilda"
+                   class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-base text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
           </div>
           <div class="mb-5">
-            <label for="prefLang" class="brand font-bold text-slate-900 text-sm block mb-2"><i class="fa-solid fa-language text-indigo-500 mr-2"></i>Preferred Language</label>
-            <select id="prefLang" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition bg-white">
-              <option value="">Select a language</option>
+            <label for="prefLang" class="brand font-bold text-slate-900 text-base block mb-2">
+              <i class="fa-solid fa-language text-indigo-500 mr-2"></i>Preferred Language
+            </label>
+            <select id="prefLang"
+                    class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-base text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition bg-white">
+              <option value="">Select your language</option>
               <option value="English">English</option>
               <option value="Hindi">Hindi</option>
               <option value="Tamil">Tamil</option>
@@ -396,551 +705,63 @@
             </select>
           </div>
           <div class="mb-6">
-            <label for="prefHospital" class="brand font-bold text-slate-900 text-sm block mb-2"><i class="fa-solid fa-hospital text-teal-500 mr-2"></i>Preferred Hospital</label>
-            <input type="text" id="prefHospital" placeholder="e.g. Apollo Hospital, Chennai" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
+            <label for="prefHospital" class="brand font-bold text-slate-900 text-base block mb-2">
+              <i class="fa-solid fa-hospital text-teal-500 mr-2"></i>Preferred Hospital
+            </label>
+            <input type="text" id="prefHospital" placeholder="e.g. Apollo Hospital, Chennai"
+                   class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-base text-slate-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition"/>
           </div>
-          
+
           <div class="flex flex-wrap gap-3">
-            <button onclick="savePreferences()" class="brand text-xs font-bold bg-blue-700 text-white px-6 py-2.5 rounded-full hover:bg-blue-800 transition shadow-lg">
-              <i class="fa-solid fa-download mr-2"></i>Save Preferences
+            <button onclick="savePreferences()"
+                    class="brand text-base font-bold bg-blue-700 text-white px-7 py-3 rounded-full hover:bg-blue-800 transition shadow-lg">
+              <i class="fa-solid fa-floppy-disk mr-2"></i>Save My Preferences
             </button>
-            <button onclick="loadPreferences()" class="brand text-xs font-bold bg-green-600 text-white px-6 py-2.5 rounded-full hover:bg-green-700 transition shadow-lg">
-              <i class="fa-solid fa-upload mr-2"></i>Load Preferences
-            </button>
-            <button onclick="clearPreferences()" class="brand text-xs font-bold bg-slate-200 text-slate-700 px-6 py-2.5 rounded-full hover:bg-red-100 hover:text-red-600 transition">
-              <i class="fa-solid fa-trash mr-2"></i>Clear Preferences
-            </button>
-          </div>
-          
-          <div id="prefStatus" class="hidden mt-5 text-sm rounded-xl p-4 border"></div>
-          
-          <div class="mt-8 text-right border-t border-slate-100 pt-6">
-            <button onclick="switchPage('view-home')" class="brand text-xs font-bold bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full transition shadow-lg inline-flex items-center gap-2">
-              Finish & Back to Home <i class="fa-solid fa-circle-check"></i>
+            <button onclick="clearPreferences()"
+                    class="brand text-base font-bold bg-slate-200 text-slate-700 px-7 py-3 rounded-full hover:bg-red-100 hover:text-red-600 transition">
+              <i class="fa-solid fa-trash mr-2"></i>Clear
             </button>
           </div>
+
+          <div id="prefStatus" class="hidden mt-5"></div>
         </div>
+
+        <!-- Canvas Profile Card -->
+        <div class="card bg-white rounded-2xl border border-slate-100 shadow-md p-6">
+          <h3 class="brand text-base font-bold text-slate-900 mb-4">
+            <i class="fa-solid fa-id-card text-blue-600 mr-2"></i>Your Patient Profile Card
+            <span class="text-xs font-normal text-slate-400 ml-2">(drawn with Canvas API)</span>
+          </h3>
+          <canvas id="profileCanvas" width="520" height="240" class="w-full"
+                  role="img" aria-label="Patient profile card showing name, language, and hospital preferences"></canvas>
+          <p class="text-xs text-slate-400 mt-3 text-center">
+            <i class="fa-solid fa-lock text-slate-300 mr-1"></i>
+            Your preferences are stored only in this browser window and are never sent anywhere.
+          </p>
+        </div>
+
       </div>
     </section>
-  </div>
+  </div><!-- /view-preferences -->
 
-  <footer id="contact" class="bg-blue-700 py-10 text-center px-6">
+  <!-- ═══════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════ -->
+  <footer id="contact" class="bg-blue-700 py-12 text-center px-6">
     <h2 class="brand text-2xl font-extrabold text-white mb-2">Ready to Take Control of Your Healthcare?</h2>
-    <p class="text-blue-100 text-sm mb-6 max-w-md mx-auto">Start understanding your reports and navigating healthcare confidently. No medical degree required.</p>
-    <a href="mailto:contact@medclarity.health" class="brand bg-white text-blue-700 hover:bg-blue-50 font-bold px-8 py-3 rounded-full transition shadow-lg text-sm">Contact Us</a>
-    <div class="mt-8 pt-6 border-t border-blue-600 text-blue-200 text-[11px]">© 2026 MedClarity  ·  Susan Matilda  ·  1 MCA B  ·  Reg. No: 2647254</div>
+    <p class="text-blue-100 text-base mb-6 max-w-md mx-auto">
+      Start understanding your reports and navigating healthcare confidently. No medical degree required.
+    </p>
+    <a href="mailto:contact@medclarity.health"
+       class="brand bg-white text-blue-700 hover:bg-blue-50 font-bold px-8 py-3 rounded-full transition shadow-lg text-base">
+      Contact Us
+    </a>
+    <div class="mt-8 pt-6 border-t border-blue-600 text-blue-200 text-xs">
+      © 2026 MedClarity · Susan Matilda · 1 MCA B · Reg. No: 2647254
+    </div>
   </footer>
 
-  <script>
-    // Global voice array reference for Speech Synthesis
-    let platformVoices = [];
-    let dynamicSpeechRecognition = null;
-    let isDictating = false;
-
-    /**
-     * Helper system for managing UI toast flashes.
-     */
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.className = 'toast ' + type + ' show';
-      setTimeout(() => { toast.classList.remove('show'); }, 3000);
-    }
-
-    // ==============================================================================
-    // MODERNIZED API 1: FILE SYSTEM ACCESS API
-    // Replaced traditional input parameters with window.showOpenFilePicker() architectures.
-    // ==============================================================================
-    async function openFilePickerNative() {
-      // Feature check for File System Access API
-      if (!('showOpenFilePicker' in window)) {
-        showToast('File System Access API not natively supported. Falling back to injection.', 'info');
-        createFallbackFileInput();
-        return;
-      }
-
-      try {
-        const pickerOptions = {
-          types: [{
-            description: 'Medical Artifact Data',
-            accept: {
-              'image/*': ['.png', '.jpg', '.jpeg'],
-              'text/plain': ['.txt'],
-              'application/pdf': ['.pdf'],
-              'application/msword': ['.doc'],
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
-            }
-          }],
-          excludeAcceptAllOption: false,
-          multiple: false
-        };
-
-        // Execution of File System Access API call
-        const [fileHandle] = await window.showOpenFilePicker(pickerOptions);
-        const fileData = await fileHandle.getFile();
-        processPlatformFile(fileData);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          showToast('Error selecting document handle: ' + err.message, 'error');
-        }
-      }
-    }
-
-    function createFallbackFileInput() {
-      const fallbackInput = document.createElement('input');
-      fallbackInput.type = 'file';
-      fallbackInput.accept = '.pdf,.png,.jpg,.jpeg,.txt,.doc,.docx';
-      fallbackInput.onchange = (e) => {
-        if (e.target.files.length > 0) processPlatformFile(e.target.files[0]);
-      };
-      fallbackInput.click();
-    }
-
-    function processPlatformFile(file) {
-      if (!file) return;
-      
-      document.getElementById('fileName').textContent = file.name;
-      document.getElementById('fileSize').textContent = formatFileSize(file.size);
-      document.getElementById('fileType').textContent = file.type || 'parsed/unknown';
-      
-      document.getElementById('fileDetails').classList.remove('hidden');
-      showToast('✓ Metadata structured: ' + file.name, 'success');
-    }
-
-    function formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    // ==============================================================================
-    // API 2: DRAG & DROP API INTEGRATION
-    // Direct link back to internal file parser tracking pipeline.
-    // ==============================================================================
-    const dropZone = document.getElementById('dropZone');
-    
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
-    
-    dropZone.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
-    
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('drag-over');
-    });
-    
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        processPlatformFile(files[0]);
-      }
-    });
-
-    // ==============================================================================
-    // MODERNIZED API 3 & ADDITIONAL: WEB SPEECH API (SYNTHESIS + DYNAMIC VOICE ENGINE & DICTATION)
-    // Upgraded to dynamically populate available runtime system voices and added speech recognition.
-    // ==============================================================================
-    function setupVoiceSynthetics() {
-      if (!('speechSynthesis' in window)) return;
-      
-      const updateVoices = () => {
-        platformVoices = window.speechSynthesis.getVoices();
-        const voiceSelect = document.getElementById('voiceSelect');
-        if (!voiceSelect) return;
-        
-        voiceSelect.innerHTML = '';
-        platformVoices.forEach((voice, index) => {
-          const opt = document.createElement('option');
-          opt.value = index;
-          opt.textContent = `${voice.name} (${voice.lang}) ${voice.default ? ' — System Default' : ''}`;
-          voiceSelect.appendChild(opt);
-        });
-      };
-
-      updateVoices();
-      if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = updateVoices;
-      }
-    }
-
-    function readReportAloud() {
-      const text = document.getElementById('speechText').value.trim();
-      if (!text) {
-        showToast('Please insert alphanumeric text structures for speech mapping.', 'error');
-        return;
-      }
-      if (!('speechSynthesis' in window)) {
-        showToast('Speech Engine legacy context missing.', 'error');
-        return;
-      }
-
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Dynamic allocation from custom option selection element
-      const selectedVoiceIdx = document.getElementById('voiceSelect').value;
-      if (platformVoices[selectedVoiceIdx]) {
-        utterance.voice = platformVoices[selectedVoiceIdx];
-      }
-
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-
-      utterance.onstart = () => {
-        document.getElementById('speechStatus').classList.remove('hidden');
-        document.getElementById('speechStatusText').textContent = 'Active Output Pipeline Playing...';
-        document.getElementById('btnReadAloud').classList.add('opacity-50');
-      };
-
-      utterance.onend = () => {
-        document.getElementById('speechStatus').classList.add('hidden');
-        document.getElementById('btnReadAloud').classList.remove('opacity-50');
-        showToast('✓ Audio synthesis stream terminated naturally.', 'success');
-      };
-
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function stopReading() {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        document.getElementById('speechStatus').classList.add('hidden');
-        document.getElementById('btnReadAloud').classList.remove('opacity-50');
-        showToast('Stream interrupted.', 'info');
-      }
-    }
-
-    /**
-     * Speech Recognition (Voice Dictation Module Add-on)
-     */
-    function setupVoiceRecognitionEngine() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        console.warn('SpeechRecognition context abstraction layers unaligned.');
-        return;
-      }
-      dynamicSpeechRecognition = new SpeechRecognition();
-      dynamicSpeechRecognition.continuous = true;
-      dynamicSpeechRecognition.interimResults = false;
-      dynamicSpeechRecognition.lang = 'en-US';
-
-      dynamicSpeechRecognition.onresult = (event) => {
-        const lastResultIndex = event.results.length - 1;
-        const speechToTextString = event.results[lastResultIndex][0].transcript;
-        const textAreaElement = document.getElementById('speechText');
-        textAreaElement.value = textAreaElement.value.trim() + " " + speechToTextString;
-        showToast('Speech transcribed accurately.', 'success');
-      };
-
-      dynamicSpeechRecognition.onerror = (e) => {
-        console.error(e);
-        stopDictationRuntime();
-      };
-
-      dynamicSpeechRecognition.onend = () => {
-        stopDictationRuntime();
-      };
-    }
-
-    function toggleDictation() {
-      if (!dynamicSpeechRecognition) {
-        showToast('Speech Recognition API not supported or initialized.', 'error');
-        return;
-      }
-      if (!isDictating) {
-        dynamicSpeechRecognition.start();
-        isDictating = true;
-        document.getElementById('micIcon').className = "fa-solid fa-microphone-lines text-red-500 animate-ping";
-        showToast('Dictation engine listening...', 'info');
-      } else {
-        dynamicSpeechRecognition.stop();
-        stopDictationRuntime();
-      }
-    }
-
-    function stopDictationRuntime() {
-      isDictating = false;
-      document.getElementById('micIcon').className = "fa-solid fa-microphone text-white";
-    }
-
-    // ==============================================================================
-    // API 6: WEB SHARE API
-    // Native sharing interface integration.
-    // ==============================================================================
-    function shareReport() {
-      const text = document.getElementById('speechText').value.trim();
-      if (!text) {
-        showToast('No payload string compiled to dispatch.', 'error');
-        return;
-      }
-      if (navigator.share) {
-        navigator.share({
-          title: 'MedClarity Simplified Medical Matrix',
-          text: text,
-          url: window.location.href
-        })
-        .then(() => showToast('✓ Shared natively.', 'success'))
-        .catch((err) => { if (err.name !== 'AbortError') showToast('Sharing fault: ' + err.message, 'error'); });
-      } else {
-        navigator.clipboard.writeText(text)
-        .then(() => showToast('📋 Text copied to clipboard context buffer.', 'success'))
-        .catch(() => showToast('Clipboard abstraction failure.', 'error'));
-      }
-    }
-
-    // ==============================================================================
-    // MODERNIZED API 4: GEOLOCATION API + PERMISSIONS API
-    // Intercept position requests with direct verification via the Permissions API.
-    // ==============================================================================
-    async function updatePermissionStatusIndicator() {
-      if (!navigator.permissions || !navigator.permissions.query) {
-        document.getElementById('permissionBadge').className = "hidden";
-        return;
-      }
-      try {
-        const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-        modifyPermissionBadge(permissionStatus.state);
-        
-        permissionStatus.onchange = () => {
-          modifyPermissionBadge(permissionStatus.state);
-        };
-      } catch (e) {
-        console.warn("Permissions verification matrix failure.", e);
-      }
-    }
-
-    function modifyPermissionBadge(state) {
-      const badge = document.getElementById('permissionBadge');
-      if (state === 'granted') {
-        badge.className = "mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700";
-        badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Location Access: Allowed`;
-      } else if (state === 'denied') {
-        badge.className = "mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700";
-        badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Location Access: Blocked`;
-      } else {
-        // Hides layout entirely when system state is evaluated to 'prompt' / unknown context maps
-        badge.className = "hidden";
-      }
-    }
-
-    function getMyLocation() {
-      if (!navigator.geolocation) {
-        showToast('Environmental positional context absent from agent.', 'error');
-        return;
-      }
-
-      showToast('📍 Resolving satellite positional coordinates...', 'info');
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          document.getElementById('latitude').textContent = lat.toFixed(6);
-          document.getElementById('longitude').textContent = lng.toFixed(6);
-          
-          document.getElementById('mapsLink').href = `https://www.google.com/maps?q=${lat},${lng}`;
-          document.getElementById('hospitalSearchLink').href = `https://www.google.com/maps/search/hospitals+near+me/@${lat},${lng},14z`;
-          
-          document.getElementById('locationResult').classList.remove('hidden');
-          document.getElementById('locationError').classList.add('hidden');
-          showToast('✓ Matrix locked onto geolocation markers.', 'success');
-          updatePermissionStatusIndicator();
-        },
-        (error) => {
-          let msg = '';
-          switch(error.code) {
-            case error.PERMISSION_DENIED: msg = 'Hardware permission blocked.'; break;
-            case error.POSITION_UNAVAILABLE: msg = 'Positioning signals unreachable.'; break;
-            case error.TIMEOUT: msg = 'Hardware handshake timeout loop.'; break;
-            default: msg = 'Unknown structural location failure.'; break;
-          }
-          document.getElementById('locationError').classList.remove('hidden');
-          document.getElementById('locationErrorText').textContent = msg;
-          document.getElementById('locationResult').classList.add('hidden');
-          showToast(msg, 'error');
-          updatePermissionStatusIndicator();
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    }
-
-    // ==============================================================================
-    // API 5: WEB STORAGE API
-    // Structured persistent state engines utilizing standard localStorage keyways.
-    // ==============================================================================
-    function savePreferences() {
-      const name = document.getElementById('prefName').value.trim();
-      const lang = document.getElementById('prefLang').value;
-      const hospital = document.getElementById('prefHospital').value.trim();
-
-      if (!name && !lang && !hospital) {
-        showToast('Parameters empty. Enter preference structures.', 'error');
-        return;
-      }
-
-      localStorage.setItem('medclarity_patientName', name);
-      localStorage.setItem('medclarity_preferredLang', lang);
-      localStorage.setItem('medclarity_preferredHospital', hospital);
-      
-      showToast('✓ Stored configurations inside sandbox dictionary.', 'success');
-      showPrefStatus('Preferences written out to memory arrays successfully.', true);
-    }
-
-    function loadPreferences() {
-      const name = localStorage.getItem('medclarity_patientName');
-      const lang = localStorage.getItem('medclarity_preferredLang');
-      const hospital = localStorage.getItem('medclarity_preferredHospital');
-
-      if (!name && !lang && !hospital) {
-        showToast('No preferences exist inside storage arrays.', 'error');
-        return;
-      }
-
-      document.getElementById('prefName').value = name || '';
-      document.getElementById('prefLang').value = lang || '';
-      document.getElementById('prefHospital').value = hospital || '';
-      
-      showToast('✓ State localized back into visual node models.', 'success');
-      showPrefStatus(`Parsed values returned from system core: Name=${name||'N/A'}`, true);
-    }
-
-    function clearPreferences() {
-      localStorage.removeItem('medclarity_patientName');
-      localStorage.removeItem('medclarity_preferredLang');
-      localStorage.removeItem('medclarity_preferredHospital');
-
-      document.getElementById('prefName').value = '';
-      document.getElementById('prefLang').value = '';
-      document.getElementById('prefHospital').value = '';
-      
-      showToast('Sandbox sector cleared.', 'info');
-      showPrefStatus('All preferences wiped down to blank states.', true);
-    }
-
-    function showPrefStatus(message, isSuccess) {
-      const status = document.getElementById('prefStatus');
-      status.classList.remove('hidden');
-      status.textContent = message;
-      status.className = isSuccess 
-        ? 'mt-5 text-sm rounded-xl p-4 border bg-green-50 text-green-700 border-green-200'
-        : 'mt-5 text-sm rounded-xl p-4 border bg-red-50 text-red-600 border-red-200';
-    }
-
-    // ==============================================================================
-    // EXISTENTIAL LAYER CONTROLS (ROUTING, OBSERVERS, AND INITIALIZATION METRICS)
-    // ==============================================================================
-    let currentAuthMode = 'signin';
-
-    function openAuthModal() {
-      document.getElementById('authModal').classList.remove('opacity-0', 'pointer-events-none');
-      document.getElementById('authModalContent').classList.replace('scale-95', 'scale-100');
-    }
-
-    function closeAuthModal() {
-      document.getElementById('authModal').classList.add('opacity-0', 'pointer-events-none');
-      document.getElementById('authModalContent').classList.replace('scale-100', 'scale-95');
-    }
-
-    function closeAuthModalOnOutsideClick(e) {
-      if (e.target === document.getElementById('authModal')) closeAuthModal();
-    }
-
-    function toggleAuthTab(mode) {
-      currentAuthMode = mode;
-      const tIn = document.getElementById('tabSignIn');
-      const tUp = document.getElementById('tabSignUp');
-      const nf = document.getElementById('authNameField');
-      const ni = document.getElementById('authName');
-      const sb = document.getElementById('authSubmitBtn');
-
-      if (mode === 'signin') {
-        tIn.className = 'w-1/2 pb-3 brand font-bold text-sm text-blue-700 border-b-2 border-blue-700';
-        tUp.className = 'w-1/2 pb-3 brand font-bold text-sm text-slate-400';
-        nf.classList.add('hidden');
-        ni.removeAttribute('required');
-        sb.textContent = 'Sign In';
-      } else {
-        tUp.className = 'w-1/2 pb-3 brand font-bold text-sm text-blue-700 border-b-2 border-blue-700';
-        tIn.className = 'w-1/2 pb-3 brand font-bold text-sm text-slate-400';
-        nf.classList.remove('hidden');
-        ni.setAttribute('required', 'required');
-        sb.textContent = 'Create Account';
-      }
-    }
-
-    function handleAuthSubmit(e) {
-      e.preventDefault();
-      const name = document.getElementById('authName').value.trim();
-      const email = document.getElementById('authEmail').value.trim();
-
-      const userObj = { name: (currentAuthMode === 'signup' ? name : email.split('@')[0]) || 'User', email: email };
-      localStorage.setItem('medclarity_loggedInUser', JSON.stringify(userObj));
-      showToast('✓ Authentication session bound successfully.', 'success');
-      closeAuthModal();
-      checkAuthState();
-    }
-
-    function handleLogout() {
-      localStorage.removeItem('medclarity_loggedInUser');
-      showToast('Session unlinked.', 'info');
-      checkAuthState();
-    }
-
-    function checkAuthState() {
-      const userStr = localStorage.getItem('medclarity_loggedInUser');
-      const profileDiv = document.getElementById('authProfile');
-      const authBtn = document.getElementById('btnNavAuth');
-      const navUserName = document.getElementById('navUserName');
-
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        navUserName.textContent = user.name;
-        profileDiv.classList.remove('hidden');
-        authBtn.classList.add('hidden');
-        if(!document.getElementById('prefName').value) {
-          document.getElementById('prefName').value = user.name;
-        }
-      } else {
-        profileDiv.classList.add('hidden');
-        authBtn.classList.remove('hidden');
-      }
-    }
-
-    function switchPage(pageId) {
-      const views = ['view-home', 'view-upload', 'view-speech', 'view-geolocation', 'view-preferences'];
-      views.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) {
-          if (id === pageId) el.classList.remove('hidden');
-          else el.classList.add('hidden');
-        }
-      });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function navigateToHomeSection(sectionId) {
-      switchPage('view-home');
-      setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
-    }
-
-    // Dynamic Bootstrapping Lifecycle Rules
-    window.addEventListener('DOMContentLoaded', () => {
-      checkAuthState();
-      setupVoiceSynthetics();
-      setupVoiceRecognitionEngine();
-      updatePermissionStatusIndicator();
-    });
-  </script>
+  <!-- MedClarity Scripts -->
+  <script src="app.js"></script>
 </body>
 </html>
