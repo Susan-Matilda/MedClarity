@@ -318,12 +318,10 @@ function translateUI() {
       return;
     }
     if (el.querySelector('i')) {
-      const textNode = Array.from(el.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
-      if (textNode) {
-        textNode.textContent = ' ' + text;
-      } else {
-        el.appendChild(document.createTextNode(' ' + text));
-      }
+      const icons = Array.from(el.querySelectorAll('i')).map(icon => icon.cloneNode(true));
+      el.innerHTML = '';
+      icons.forEach(icon => el.appendChild(icon));
+      el.appendChild(document.createTextNode(' ' + text));
       return;
     }
     el.textContent = text;
