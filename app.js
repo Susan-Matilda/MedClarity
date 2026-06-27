@@ -571,6 +571,26 @@ function toggleAuthTab(mode) {
   }
 }
 
+function setAuthFieldState(fieldId, message) {
+  const el = document.getElementById(fieldId);
+  const errorEl = document.getElementById(fieldId + 'Error');
+  if (!el) return !message;
+
+  if (message) {
+    el.classList.add('input-invalid');
+    el.classList.remove('input-valid');
+    el.setAttribute('aria-invalid', 'true');
+    if (errorEl) errorEl.textContent = message;
+    return false;
+  } else {
+    el.classList.remove('input-invalid');
+    el.classList.add('input-valid');
+    el.setAttribute('aria-invalid', 'false');
+    if (errorEl) errorEl.textContent = '';
+    return true;
+  }
+}
+
 function validateAuthField(fieldId) {
   const value = document.getElementById(fieldId).value.trim();
   if (fieldId === 'authName') {
